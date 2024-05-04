@@ -2,11 +2,20 @@ import { Route } from '@/types';
 import got from '@/utils/got';
 import { load } from 'cheerio';
 import { asyncPoolAll, parseArticle } from './utils';
+import { config } from '@/config';
 const hostMap = {
     'en-us': 'https://www.wsj.com',
     'zh-cn': 'https://cn.wsj.com/zh-hans',
     'zh-tw': 'https://cn.wsj.com/zh-hant',
 };
+const regionMap = {
+    'en-us': 'na%2Cus',
+    'zh-cn': 'asia%2Ccn',
+    'zh-tw': 'asia%2Ccn_hant',
+};
+
+const cookieSuffix = 'gdprApplies=false; ccpaApplies=false; vcdpaApplies=false; regulationApplies=gdpr%3Afalse%2Ccpra%3Afalse%2Cvcdpa%3Afalse0';
+
 export const route: Route = {
     path: '/:lang/:category?',
     categories: ['traditional-media'],
@@ -45,14 +54,21 @@ async function handler(ctx) {
     let subTitle = ` - ${lang.toUpperCase()}`;
     let url = host;
     if (category.length > 0) {
-        url = `${host}/news/${category}`;
+        url = lang === 'en-us' ? `${host}/${category}` : `${host}/news/${category}`;
         subTitle = `${subTitle} - ${category}`;
+    } else if (lang === 'zh-cn') {
+        // cn.wsj.com/zh-hans redirect to cn.wsj.com
+        url = 'https://cn.wsj.com';
     }
+    const cookie = config.wsj.cookie ? `${config.wsj.cookie} wsjregion=${regionMap[lang]}; ${cookieSuffix}` : '';
     const response = await got({
         method: 'get',
         url,
+        headers: {
+            'accept-language': 'zh',
+            Cookie: cookie,
+        },
     });
-
     const $ = load(response.data);
     const contents = $('script:contains("window.__STATE__")').text();
     const data = JSON.parse(contents.match(/{.*}/)[0]).data;

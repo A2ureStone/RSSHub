@@ -301,6 +301,9 @@ export type Config = {
     zsxq: {
         accessToken?: string;
     };
+    wsj: {
+        cookie?: string;
+    };
 };
 
 const value: Config | Record<string, any> = {};
@@ -656,6 +659,9 @@ const calculateValue = () => {
         },
         zsxq: {
             accessToken: envs.ZSXQ_ACCESS_TOKEN,
+        },
+        wsj: {
+            cookie: envs.WSJ_COOKIE,
         },
     };
 
